@@ -109,11 +109,17 @@ public:
             bool overloaded = false;
         };
 
+        Subscriber() = delete;
+        virtual ~Subscriber() = default;
+
         /**
          * Constructor
          * @param scale The scale to use.
          */
         explicit Subscriber (const Scale& scale);
+
+        JUCE_DECLARE_NON_COPYABLE (Subscriber)
+        JUCE_DECLARE_NON_MOVEABLE (Subscriber)
 
         /**
          * Prepared this subscriber for the amount of given channels.
@@ -128,7 +134,7 @@ public:
         virtual void updateWithMeasurement (const Measurement& measurement);
 
         /**
-         * Called when all measurements have been process inside the timer callback.
+         * Called when all measurements have been processed inside the timer callback.
          * Use this method to schedule any updates of UI.
          */
         virtual void measurementUpdatesFinished() {}
@@ -201,6 +207,9 @@ public:
     LevelMeter();
     ~LevelMeter();
 
+    JUCE_DECLARE_NON_COPYABLE (LevelMeter)
+    JUCE_DECLARE_NON_MOVEABLE (LevelMeter)
+
     /**
      * Prepares the meter for the amount of channels given.
      * @param numChannels Number of channels to prepare for.
@@ -239,6 +248,9 @@ private:
         {
             stopTimer(); // Paranoia.
         }
+
+        JUCE_DECLARE_NON_COPYABLE (SharedTimer)
+        JUCE_DECLARE_NON_MOVEABLE (SharedTimer)
 
         /**
          * Subscribes given level meter to this timer.
