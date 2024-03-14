@@ -187,12 +187,12 @@ int LevelMeter::Subscriber::getNumChannels() const
     return mChannelData.size();
 }
 
-void LevelMeter::Subscriber::setReturnRate (double returnRateDbPerSecond)
+void LevelMeter::Subscriber::setReturnRate (double const returnRateDbPerSecond)
 {
-    for (auto& ch : mChannelData)
+    for (auto& [peakLevel, peakHoldLevel, overloaded] : mChannelData)
     {
-        ch.peakLevel.setReturnRate (returnRateDbPerSecond);
-        ch.peakHoldLevel.setReturnRate (returnRateDbPerSecond);
+        peakLevel.setReturnRate (returnRateDbPerSecond);
+        peakHoldLevel.setReturnRate (returnRateDbPerSecond);
     }
 }
 
