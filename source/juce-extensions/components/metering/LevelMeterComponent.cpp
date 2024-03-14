@@ -5,8 +5,15 @@ LevelMeterComponent::Options LevelMeterComponent::Options::getDefault()
     return {};
 }
 
+LevelMeterComponent::Options LevelMeterComponent::Options::withMaxChannels (int const newMaxChannels) const
+{
+    auto copy = *this;
+    copy.maxChannels = newMaxChannels;
+    return copy;
+}
+
 LevelMeterComponent::LevelMeterComponent (const LevelMeter::Scale& scale, [[maybe_unused]] const Options& options) :
-    Subscriber (scale)
+    Subscriber (scale, options.maxChannels)
 {
 }
 

@@ -14,11 +14,18 @@ LevelMeter::~LevelMeter()
 
 void LevelMeter::prepareToPlay (int numChannels)
 {
-    mPreparedToPlayInfo.numChannels = numChannels;
+    if (std::exchange (mPreparedToPlayInfo.numChannels, numChannels) != numChannels)
+    {
+        mSubscribers.call ([numChannels] (Subscriber& s) {
+            s.prepareToPlay (numChannels);
+        });
 
-    mSubscribers.call ([numChannels] (Subscriber& s) {
-        s.prepareToPlay (numChannels);
-    });
+        // Since measurments gets read from the queue on the juce::MessageThread (in response to the timer callback), it
+        // is safe to clear the queue here.
+        while (mMeasurements.pop())
+        {
+        };
+    }
 }
 
 rdk::Subscription LevelMeter::subscribe (Subscriber* subscriber)
@@ -82,6 +89,9 @@ void LevelMeter::timerCallback()
 
 void LevelMeter::Subscriber::prepareToPlay (int numChannels)
 {
+    if (numChannels > mMaxChannels)
+        numChannels = 1; // Make updateWithMeasurement() fold all channels into a single mono channel.
+
     mChannelData.resize (numChannels);
 
     for (auto& ch : mChannelData)
@@ -99,15 +109,34 @@ void LevelMeter::Subscriber::prepareToPlay (int numChannels)
 
 void LevelMeter::Subscriber::updateWithMeasurement (const Measurement& measurement)
 {
-    auto chIndex = measurement.channelIndex;
-    if (juce::isPositiveAndBelow (chIndex, mChannelData.size()))
+    if (measurement.channelIndex < 0)
     {
-        auto& channelData = mChannelData.getReference (chIndex);
-        channelData.peakLevel.updateLevel (measurement.peakLevel);
-        channelData.peakHoldLevel.updateLevel (measurement.peakLevel);
-        if (measurement.peakLevel >= LevelMeterConstants::kOverloadTriggerLevel)
-            channelData.overloaded = true;
+        jassertfalse; // Negative channel index.
+        return;
     }
+
+    auto const numChannels = getNumChannels();
+    auto channelIndex = measurement.channelIndex;
+    if (channelIndex >= numChannels)
+    {
+        if (numChannels == 1)
+        {
+            channelIndex = 0; // Fold every channel into a single mono channel (which aggregates all values as a result)
+        }
+        else
+        {
+            // The channel index is out of range and there is no mono channel to fold into which suggests that
+            // prepareToPlay was not called with the correct number of channels.
+            jassertfalse;
+            return;
+        }
+    }
+
+    auto& [peakLevel, peakHoldLevel, overloaded] = mChannelData.getReference (channelIndex);
+    peakLevel.updateLevel (measurement.peakLevel);
+    peakHoldLevel.updateLevel (measurement.peakLevel);
+    if (measurement.peakLevel >= LevelMeterConstants::kOverloadTriggerLevel)
+        overloaded = true;
 }
 
 void LevelMeter::Subscriber::subscribeToLevelMeter (LevelMeter& levelMeter)
@@ -147,7 +176,11 @@ const LevelMeter::Scale& LevelMeter::Subscriber::getScale() const
     return mScale;
 }
 
-LevelMeter::Subscriber::Subscriber (const Scale& scale) : mScale (scale) {}
+LevelMeter::Subscriber::Subscriber (const Scale& scale, int const maxChannels) :
+    mScale (scale),
+    mMaxChannels (maxChannels)
+{
+}
 
 int LevelMeter::Subscriber::getNumChannels() const
 {

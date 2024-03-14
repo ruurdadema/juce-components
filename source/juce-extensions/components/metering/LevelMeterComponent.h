@@ -7,7 +7,7 @@
 /**
  * Component which shows a level meter with a certain scale.
  */
-class LevelMeterComponent : public juce::Component, private LevelMeter::Subscriber
+class LevelMeterComponent : public juce::Component, LevelMeter::Subscriber
 {
 public:
     /// The size of the overload area.
@@ -24,10 +24,16 @@ public:
         /// The start point of overload (red).
         double overloadStartPointDb = -1.0;
 
+        /// The maximum number of channels to display. If a meter has more channels then all channels will be folded
+        /// into a single mono channel.
+        int maxChannels = kDefaultMaxChannels;
+
         /**
-         * @return Default options.
+         * @returns The default options.
          */
         static Options getDefault();
+
+        Options withMaxChannels (int newMaxChannels) const;
     };
 
     /// Expose as public members

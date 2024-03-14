@@ -88,6 +88,8 @@ public:
     class Subscriber
     {
     public:
+        static constexpr int kDefaultMaxChannels = 64;
+
         /**
          * Struct for holding measurement data per channel.
          */
@@ -104,8 +106,11 @@ public:
         /**
          * Constructor
          * @param scale The scale to use.
+         * @param maxChannels Defines the max number of channels to display. If a meter has more channels then all
+         * channels will be folded into a single mono channel. The ensures that the meter will not display more channels
+         * then it can visually handle.
          */
-        explicit Subscriber (const Scale& scale);
+        explicit Subscriber (const Scale& scale, int maxChannels = kDefaultMaxChannels);
 
         JUCE_DECLARE_NON_COPYABLE (Subscriber)
         JUCE_DECLARE_NON_MOVEABLE (Subscriber)
@@ -203,6 +208,7 @@ public:
         rdk::Subscription mSubscription;
         juce::Array<ChannelData> mChannelData;
         double mReturnRateDbPerSecond = LevelMeterConstants::kDefaultReturnRate;
+        int mMaxChannels = kDefaultMaxChannels;
     };
 
     LevelMeter();
