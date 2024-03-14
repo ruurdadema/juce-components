@@ -203,6 +203,12 @@ public:
          */
         void setReturnRate (double returnRateDbPerSecond);
 
+        /**
+         * Sets the peak holds time of the peak hold value.
+         * @param peakHoldTimeMs The time to hold in milliseconds.
+         */
+        void setPeakHoldTimeMs (uint32_t peakHoldTimeMs);
+
     private:
         const Scale& mScale;
         rdk::Subscription mSubscription;

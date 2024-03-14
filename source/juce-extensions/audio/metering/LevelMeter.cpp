@@ -100,7 +100,7 @@ void LevelMeter::Subscriber::prepareToPlay (int numChannels)
         ch.peakLevel.setPeakHoldTime (1000 / LevelMeterConstants::kRefreshRateHz);
         ch.peakLevel.setReturnRate (mReturnRateDbPerSecond);
         ch.peakHoldLevel.setMinusInfinityDb (mScale.getMinusInfinityDb());
-        ch.peakHoldLevel.setPeakHoldTime (LevelMeterConstants::kPeakHoldValueTimeMs);
+        ch.peakHoldLevel.setPeakHoldTime (LevelMeterConstants::kPeakHoldDefaultValueTimeMs);
         ch.peakHoldLevel.setReturnRate (mReturnRateDbPerSecond);
     }
 
@@ -194,6 +194,12 @@ void LevelMeter::Subscriber::setReturnRate (double const returnRateDbPerSecond)
         peakLevel.setReturnRate (returnRateDbPerSecond);
         peakHoldLevel.setReturnRate (returnRateDbPerSecond);
     }
+}
+
+void LevelMeter::Subscriber::setPeakHoldTimeMs (uint32_t const peakHoldTimeMs)
+{
+    for (auto& [peakLevel, peakHoldLevel, overloaded] : mChannelData)
+        peakHoldLevel.setPeakHoldTime (peakHoldTimeMs);
 }
 
 void LevelMeter::Subscriber::unsubscribeFromLevelMeter()

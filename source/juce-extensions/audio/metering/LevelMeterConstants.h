@@ -13,7 +13,7 @@ public:
     static constexpr int kRefreshRateHz = 30;
 
     /// The amount of time in milliseconds the peak hold has to wait before declining.
-    static constexpr uint32_t kPeakHoldValueTimeMs = 2000;
+    static constexpr uint32_t kPeakHoldDefaultValueTimeMs = 2000;
 
     /// The level which triggers the overload indication
     static constexpr float kOverloadTriggerLevel = 1.001f;
