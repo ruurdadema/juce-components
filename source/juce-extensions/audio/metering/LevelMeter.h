@@ -15,15 +15,6 @@
 class LevelMeter : rdk::NonCopyable
 {
 public:
-    /// The refresh rate of the meter.
-    static constexpr int kRefreshRateHz = 30;
-
-    /// The amount of time in milliseconds the peak hold has to wait before declining.
-    static constexpr uint32_t kPeakHoldValueTimeMs = 2000;
-
-    /// The level which triggers the overload indication
-    static constexpr float kOverloadTriggerLevel = 1.f;
-
     /**
      * A unit of measurement for a specific channel.
      */
@@ -39,9 +30,6 @@ public:
     class Scale
     {
     public:
-        /// The default minus infinity.
-        constexpr static const double kDefaultMinusInfinityDb = -96.0;
-
         /**
          * Constructor.
          * @param minusInfinityDb Minus infinity in decibels.
@@ -87,7 +75,8 @@ public:
 
     private:
         /// Used for runtime minus infinity configuration.
-        double mMinusInfinityDb { kDefaultMinusInfinityDb }; // TODO: I don't think we need this
+        // TODO: I don't think we need this, we should use the lowest value from the scale.
+        double mMinusInfinityDb { LevelMeterConstants::kDefaultMinusInfinityDb };
 
         /// Stores al the levels for each division.
         std::vector<double> mDivisions;
@@ -159,6 +148,12 @@ public:
         void unsubscribeFromLevelMeter();
 
         /**
+         * Sets a subscription, destroying the previous one if one existed.
+         * @param subscription The subscription to set.
+         */
+        void setSubscription (rdk::Subscription&& subscription);
+
+        /**
          * Called when the level meter was prepared. use this to configure the visual representation of the level meter.
          * @param numChannels Number of channels.
          */
@@ -171,7 +166,6 @@ public:
         double getPeakValue (int channelIndex);
 
         /**
-         *
          * @param channelIndex The index of the channel to get the value for.
          * @return The current peak hold value for given channel index.
          */
@@ -179,9 +173,10 @@ public:
 
         /**
          * @param channelIndex The channel index.
-         * @return True if the signal was overloaded, or false if not.
+         * @return True if the signal was overloaded at some point in history, or false if not. Use resetOverloaded() to
+         * reset the value.
          */
-        [[nodiscard]] bool getOverloaded (int channelIndex) const;
+        [[nodiscard]] bool isOverloaded (int channelIndex) const;
 
         /**
          * Turns off the overloaded flag.
@@ -191,17 +186,23 @@ public:
         /**
          * @return The current scale for this subscriber.
          */
-        const Scale& getScale();
+        const Scale& getScale() const;
 
         /**
          * @return The amount of configured channels.
          */
         [[nodiscard]] int getNumChannels() const;
 
+        /**
+         * Sets the return rate of the peak value and peak hold value.
+         */
+        void setReturnRate (double returnRateDbPerSecond);
+
     private:
         const Scale& mScale;
         rdk::Subscription mSubscription;
         juce::Array<ChannelData> mChannelData;
+        double mReturnRateDbPerSecond = LevelMeterConstants::kDefaultReturnRate;
     };
 
     LevelMeter();
@@ -236,6 +237,13 @@ public:
     template <typename SampleType>
     void measureBlock (const SampleType* const* inputChannelData, int numChannels, int numSamples);
 
+    /**
+     * Subscribes given subscriber to this LevelMeter.
+     * @param subscriber The subscriber to add.
+     * @return A subscription which will keep the subscription alive until it is destroyed.
+     */
+    rdk::Subscription subscribe (Subscriber* subscriber);
+
 private:
     /**
      * A timer which is used by all instances of LevelMeter to synchronize all repaints. This keeps the meters steady.
@@ -260,7 +268,7 @@ private:
         {
             // Set the timer going if we're about to subscribe the first subscriber.
             if (mSubscribers.getNumSubscribers() == 0)
-                startTimerHz (kRefreshRateHz);
+                startTimerHz (LevelMeterConstants::kRefreshRateHz);
 
             levelMeter.mSharedTimerSubscription = mSubscribers.subscribe (&levelMeter);
         }

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstdint>
+#include "LevelMeterConstants.h"
 
+#include <cstdint>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_core/juce_core.h>
 
@@ -14,9 +15,10 @@ template <class SampleType>
 class LevelPeakValue
 {
 public:
-    static constexpr SampleType kDefaultReturnRate = 11.7; // Decibels per second, equals 20dB in 1.7 seconds.
-
-    explicit LevelPeakValue (double minusInfinityDb = -100.0) : mMinusInfinityDb (minusInfinityDb) {}
+    explicit LevelPeakValue (double const minusInfinityDb = LevelMeterConstants::kDefaultMinusInfinityDb) :
+        mMinusInfinityDb (minusInfinityDb)
+    {
+    }
 
     /**
      * Sets the return rate.
@@ -75,14 +77,14 @@ public:
      */
     void setMinusInfinityDb (double minusInfinityDb)
     {
-        LevelPeakValue::mMinusInfinityDb = minusInfinityDb;
+        mMinusInfinityDb = minusInfinityDb;
     }
 
     /**
      * Sets peak hold time.
      * @param peakHoldTime The hold time in milliseconds.
      */
-    void setPeakHoldTime (uint32_t peakHoldTime)
+    void setPeakHoldTime (uint32_t const peakHoldTime)
     {
         mPeakHoldTime = peakHoldTime;
     }
@@ -101,7 +103,7 @@ public:
 
 private:
     /// Return rate in dB per second.
-    SampleType mReturnRateDbPerSecond { kDefaultReturnRate };
+    SampleType mReturnRateDbPerSecond { LevelMeterConstants::kDefaultReturnRate };
 
     /// The current level which should be presented as level meter value.
     SampleType mHighestLevel { 0.0 };
@@ -113,7 +115,7 @@ private:
     uint32_t mPreviousTime { 0 };
 
     /// Specifies the lowest level of audio which equals to zero gain.
-    double mMinusInfinityDb = { -100.0 };
+    double mMinusInfinityDb = { LevelMeterConstants::kDefaultMinusInfinityDb };
 
     /// Runtime setting for the amount of time the value needs to be held at the highest value.
     uint32_t mPeakHoldTime { 0 };

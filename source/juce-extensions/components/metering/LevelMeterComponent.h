@@ -72,7 +72,7 @@ protected:
 
 private:
     /// The amount of room left around the meter on the main axis.
-    static constexpr const int kMargin = 10;
+    static constexpr int kMargin = 10;
 
     /// The options for configuring this meter.
     Options mOptions;

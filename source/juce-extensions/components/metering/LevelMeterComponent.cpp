@@ -5,9 +5,7 @@ LevelMeterComponent::Options LevelMeterComponent::Options::getDefault()
     return {};
 }
 
-LevelMeterComponent::LevelMeterComponent (
-    const LevelMeter::Scale& scale,
-    [[maybe_unused]] const LevelMeterComponent::Options& options) :
+LevelMeterComponent::LevelMeterComponent (const LevelMeter::Scale& scale, [[maybe_unused]] const Options& options) :
     Subscriber (scale)
 {
 }
@@ -15,7 +13,7 @@ LevelMeterComponent::LevelMeterComponent (
 LevelMeterComponent::LevelMeterComponent (
     LevelMeter& levelMeter,
     const LevelMeter::Scale& scale,
-    const LevelMeterComponent::Options& options) :
+    const Options& options) :
     LevelMeterComponent (scale, options)
 {
     subscribeToLevelMeter (levelMeter);
@@ -64,28 +62,36 @@ void LevelMeterComponent::paint (juce::Graphics& g)
 
     auto barSeparationSpace = 1.f;
     auto totalSize = isHorizontal ? meterBounds.getHeight() : meterBounds.getWidth();
-    float barSize =
-        (totalSize - (barSeparationSpace * static_cast<float> (numChannels - 1))) / static_cast<float> (numChannels);
+    float const barSize = (totalSize - (barSeparationSpace * static_cast<float> (numChannels - 1))) /
+                          static_cast<float> (numChannels);
 
     const auto& scale = getScale();
 
     // Draw level bars and peak hold values.
     for (int ch = 0; ch < numChannels; ch++)
     {
-        auto peak = getPeakValue (ch);
-        auto peakProportion = scale.calculateProportionForLevel (peak);
+        auto const peak = getPeakValue (ch);
+        auto const peakProportion = scale.calculateProportionForLevel (peak);
 
-        auto peakHold = getPeakHoldValue (ch);
-        auto peakHoldProportion = scale.calculateProportionForLevel (peakHold);
+        auto const peakHold = getPeakHoldValue (ch);
+        auto const peakHoldProportion = scale.calculateProportionForLevel (peakHold);
 
         if (ch > 0)
+        {
             isHorizontal ? meterBounds.removeFromTop (barSeparationSpace)
                          : meterBounds.removeFromLeft (barSeparationSpace);
+        }
 
         auto barBounds = isHorizontal ? meterBounds.removeFromTop (barSize) : meterBounds.removeFromLeft (barSize);
 
         if (isHorizontal)
         {
+            if (peakHold >= LevelMeterConstants::kOverloadTriggerLevel)
+            {
+                g.setColour (juce::Colours::red);
+                g.fillRect (barBounds.withLeft (barBounds.getWidth() - kOverloadAreaSize));
+            }
+
             g.setColour (juce::Colours::darkgreen);
             g.fillRect (barBounds.withWidth (
                 (meterBounds.getWidth() - static_cast<float> (kOverloadAreaSize)) *
@@ -101,6 +107,12 @@ void LevelMeterComponent::paint (juce::Graphics& g)
         }
         else
         {
+            if (peakHold >= LevelMeterConstants::kOverloadTriggerLevel)
+            {
+                g.setColour (juce::Colours::red);
+                g.fillRect (barBounds.withBottom (kOverloadAreaSize));
+            }
+
             g.setColour (juce::Colours::darkgreen);
             g.fillRect (barBounds.withTrimmedTop (
                 meterBounds.getHeight() -

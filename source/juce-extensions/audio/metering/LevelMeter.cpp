@@ -21,6 +21,14 @@ void LevelMeter::prepareToPlay (int numChannels)
     });
 }
 
+rdk::Subscription LevelMeter::subscribe (Subscriber* subscriber)
+{
+    if (subscriber == nullptr)
+        return {};
+    subscriber->prepareToPlay (mPreparedToPlayInfo.numChannels);
+    return mSubscribers.subscribe (subscriber);
+}
+
 template <typename SampleType>
 void LevelMeter::measureBlock (const juce::AudioBuffer<SampleType>& audioBuffer)
 {
@@ -79,15 +87,17 @@ void LevelMeter::Subscriber::prepareToPlay (int numChannels)
     for (auto& ch : mChannelData)
     {
         ch.peakLevel.setMinusInfinityDb (mScale.getMinusInfinityDb());
-        ch.peakLevel.setPeakHoldTime (1000 / kRefreshRateHz);
+        ch.peakLevel.setPeakHoldTime (1000 / LevelMeterConstants::kRefreshRateHz);
+        ch.peakLevel.setReturnRate (mReturnRateDbPerSecond);
         ch.peakHoldLevel.setMinusInfinityDb (mScale.getMinusInfinityDb());
-        ch.peakHoldLevel.setPeakHoldTime (kPeakHoldValueTimeMs);
+        ch.peakHoldLevel.setPeakHoldTime (LevelMeterConstants::kPeakHoldValueTimeMs);
+        ch.peakHoldLevel.setReturnRate (mReturnRateDbPerSecond);
     }
 
     levelMeterPrepared (numChannels);
 }
 
-void LevelMeter::Subscriber::updateWithMeasurement (const LevelMeter::Measurement& measurement)
+void LevelMeter::Subscriber::updateWithMeasurement (const Measurement& measurement)
 {
     auto chIndex = measurement.channelIndex;
     if (juce::isPositiveAndBelow (chIndex, mChannelData.size()))
@@ -95,33 +105,31 @@ void LevelMeter::Subscriber::updateWithMeasurement (const LevelMeter::Measuremen
         auto& channelData = mChannelData.getReference (chIndex);
         channelData.peakLevel.updateLevel (measurement.peakLevel);
         channelData.peakHoldLevel.updateLevel (measurement.peakLevel);
-        if (measurement.peakLevel >= kOverloadTriggerLevel)
+        if (measurement.peakLevel >= LevelMeterConstants::kOverloadTriggerLevel)
             channelData.overloaded = true;
     }
 }
 
 void LevelMeter::Subscriber::subscribeToLevelMeter (LevelMeter& levelMeter)
 {
-    mSubscription.reset();
-    mSubscription = levelMeter.mSubscribers.subscribe (this);
-    prepareToPlay (levelMeter.mPreparedToPlayInfo.numChannels);
+    setSubscription (levelMeter.subscribe (this));
 }
 
-double LevelMeter::Subscriber::getPeakValue (int channelIndex)
+double LevelMeter::Subscriber::getPeakValue (int const channelIndex)
 {
     if (juce::isPositiveAndBelow (channelIndex, mChannelData.size()))
         return mChannelData.getReference (channelIndex).peakLevel.getNextLevel();
     return 0.0;
 }
 
-double LevelMeter::Subscriber::getPeakHoldValue (int channelIndex)
+double LevelMeter::Subscriber::getPeakHoldValue (int const channelIndex)
 {
     if (juce::isPositiveAndBelow (channelIndex, mChannelData.size()))
         return mChannelData.getReference (channelIndex).peakHoldLevel.getNextLevel();
     return 0.0;
 }
 
-bool LevelMeter::Subscriber::getOverloaded (int channelIndex) const
+bool LevelMeter::Subscriber::isOverloaded (int const channelIndex) const
 {
     if (juce::isPositiveAndBelow (channelIndex, mChannelData.size()))
         return mChannelData.getReference (channelIndex).overloaded;
@@ -134,7 +142,7 @@ void LevelMeter::Subscriber::resetOverloaded()
         ch.overloaded = false;
 }
 
-const LevelMeter::Scale& LevelMeter::Subscriber::getScale()
+const LevelMeter::Scale& LevelMeter::Subscriber::getScale() const
 {
     return mScale;
 }
@@ -146,10 +154,25 @@ int LevelMeter::Subscriber::getNumChannels() const
     return mChannelData.size();
 }
 
+void LevelMeter::Subscriber::setReturnRate (double returnRateDbPerSecond)
+{
+    for (auto& ch : mChannelData)
+    {
+        ch.peakLevel.setReturnRate (returnRateDbPerSecond);
+        ch.peakHoldLevel.setReturnRate (returnRateDbPerSecond);
+    }
+}
+
 void LevelMeter::Subscriber::unsubscribeFromLevelMeter()
 {
     mSubscription.reset();
     reset();
+}
+
+void LevelMeter::Subscriber::setSubscription (rdk::Subscription&& subscription)
+{
+    mSubscription.reset();
+    mSubscription = std::move (subscription);
 }
 
 void LevelMeter::Subscriber::reset()
@@ -244,9 +267,19 @@ double LevelMeter::Scale::getMinusInfinityDb() const
 
 const LevelMeter::Scale& LevelMeter::Scale::getDefaultScale()
 {
-    static const Scale scale {
-        kDefaultMinusInfinityDb,
-        { kDefaultMinusInfinityDb, -80.0, -60.0, -40.0, -30.0, -24.0, -20.0, -16.0, -12.0, -9.0, -6.0, -3.0, 0.0 }
-    };
+    static const Scale scale { LevelMeterConstants::kDefaultMinusInfinityDb,
+                               { LevelMeterConstants::kDefaultMinusInfinityDb,
+                                 -80.0,
+                                 -60.0,
+                                 -40.0,
+                                 -30.0,
+                                 -24.0,
+                                 -20.0,
+                                 -16.0,
+                                 -12.0,
+                                 -9.0,
+                                 -6.0,
+                                 -3.0,
+                                 0.0 } };
     return scale;
 }
