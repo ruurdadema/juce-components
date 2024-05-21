@@ -282,7 +282,7 @@ private:
             if (mSubscribers.getNumSubscribers() == 0)
                 startTimerHz (LevelMeterConstants::kRefreshRateHz);
 
-            levelMeter.mSharedTimerSubscription = mSubscribers.subscribe (&levelMeter);
+            levelMeter.mSharedTimerSubscription = mSubscribers.add (&levelMeter);
         }
 
     private:

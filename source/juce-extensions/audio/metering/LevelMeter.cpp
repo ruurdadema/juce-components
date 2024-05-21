@@ -33,7 +33,7 @@ rdk::Subscription LevelMeter::subscribe (Subscriber* subscriber)
     if (subscriber == nullptr)
         return {};
     subscriber->prepareToPlay (mPreparedToPlayInfo.numChannels);
-    return mSubscribers.subscribe (subscriber);
+    return mSubscribers.add (subscriber);
 }
 
 template <typename SampleType>
