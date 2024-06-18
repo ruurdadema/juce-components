@@ -303,7 +303,7 @@ private:
     /// Data cached from the call to prepareToPlay
     struct PreparedToPlayInfo
     {
-        int numChannels = 0;
+        int numChannels = 2;
     } mPreparedToPlayInfo;
 
     /// Holds subscribers to this level meter.
