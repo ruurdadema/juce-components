@@ -279,7 +279,7 @@ private:
         void subscribe (LevelMeter& levelMeter)
         {
             // Set the timer going if we're about to subscribe the first subscriber.
-            if (mSubscribers.getNumSubscribers() == 0)
+            if (mSubscribers.get_num_subscribers() == 0)
                 startTimerHz (LevelMeterConstants::kRefreshRateHz);
 
             levelMeter.mSharedTimerSubscription = mSubscribers.add (&levelMeter);
@@ -291,7 +291,7 @@ private:
         void timerCallback() override
         {
             // Stop timer if there are no subscribers.
-            if (mSubscribers.getNumSubscribers() == 0)
+            if (mSubscribers.get_num_subscribers() == 0)
                 stopTimer();
 
             mSubscribers.call ([] (LevelMeter& s) {
